@@ -16,3 +16,8 @@
 *.exe
 *.out
 *.app
+
+# Generated image and executables
+mandelbrot.ppm
+mandelbrot_cli
+mandelbrot_gui
