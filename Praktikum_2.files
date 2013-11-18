@@ -1,0 +1,8 @@
+CLI.c
+globals.h
+GUI.c
+mandelbrot.c
+mandelbrot.h
+ppm.c
+ppm.h
+README.md
