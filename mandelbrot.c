@@ -5,6 +5,7 @@
  * the color mapping, you may want to process multiple pixels at once.
  */
 #include "mandelbrot.h"
+#include "stdio.h"
 
 /*
  * Calculates a color mapping for a given iteration number by exploiting the
@@ -20,18 +21,34 @@
 void
 colorMapYUV(int index, int maxIterations, unsigned char* color)
 {
-    float y = 0.2;
-    float u = -1.0+2.0*(index/maxIterations);
-    float v = 0.5 - (index/maxIterations);
+    float r,g,b;
 
-    float b = y + u/0.492;
-    float r = y + v/0.877;
-    float g = 1.704*y-0.509*r-0.194*b;
+    if (index == -1){
+        r = 0.0;
+        g = 0.0;
+        b = 0.0;
 
-    //printf ("r: %f, g: %f b: %f \n", r,g,b);
-    color[0] = (char) r;
-    color[1] = (char) g;
-    color[2] = (char) b;
+    }
+    else {
+        float y = 0.2;
+        float u = -1.0 + 2.0 * ((float)index / (float)maxIterations);
+        float v = 0.5 - ((float)index / (float)maxIterations);
+
+        b = y + u / 0.492;
+        r = y + v / 0.877;
+        g = 1.704 * y - 0.509 * r - 0.194 * b;
+
+        b = b * 255.0;
+        r = r * 255.0;
+        g = g * 255.0;
+    }
+
+    //printf ("it: %d,r: %f, g: %f b: %f \n",index,r, g, b);
+    //printf ("it: %d,r: %d, g: %d b: %d \n",index,(unsigned char)r, (unsigned char)g, (unsigned char)b);
+    //printf("---\n");
+    color[0] = (unsigned char) r;
+    color[1] = (unsigned char) g;
+    color[2] = (unsigned char) b;
 }
 
 /*
@@ -51,16 +68,19 @@ colorMapYUV(int index, int maxIterations, unsigned char* color)
 int
 testEscapeSeriesForPoint(complex float c, int maxIterations, complex float * last)
 {
+    //printf("real: %f, imag: %f\n",crealf(c),cimagf(c));
     complex float z = 0+0*I;
     int iteration = 0;
 
-    while ((sqrt(pow(creal(z), 2) + pow(cimag(z), 2)) <= RADIUS) && (iteration < maxIterations)) {
+    while ((sqrt(pow(crealf(z), 2.0) + pow(cimagf(z), 2.0)) <= RADIUS) && (iteration < maxIterations)) {
         z = z*z+c;
         iteration = iteration + 1;
     }
 
+    //printf("Real: %f, Imag: %f\n",crealf(z),cimag(z));
+
     if (iteration < maxIterations) {
-        int mu = log(log(sqrt(pow(creal(z), 2) + pow(cimag(z), 2))) / log(2));
+        int mu = log(log(sqrt(pow(crealf(z), 2.0) + pow(cimagf(z), 2.0))) / log(2.0));
         iteration = iteration + 1 - mu;
     }
 
@@ -68,7 +88,6 @@ testEscapeSeriesForPoint(complex float c, int maxIterations, complex float * las
         iteration = -1;
     }
 
-    last = &z;
     return iteration;
 }
 
@@ -87,16 +106,24 @@ generateMandelbrot(
 {
     // Allocate image buffer, row-major order, 3 channels.
     unsigned char *image = malloc(height * width * 3);
-    // TODO: Generate and color map the image.
+    float widthPiece = (crealf(INITIAL_UPPERLEFT) - crealf(INITIAL_LOWERRIGHT)) / WIDTH;
+    float heightPiece = (cimagf(INITIAL_UPPERLEFT) - cimagf(INITIAL_LOWERRIGHT)) / HEIGHT;
+    widthPiece = fabs(widthPiece);
+    heightPiece = fabs(heightPiece);
+    printf("%f %f \n",widthPiece, heightPiece);
+
     for(int y = 0; y < height; y++) {
         for(int x = 0; x < width; x++) {
-            // TODO: Call testEscapeSeriesForPoint() here.
-            // TODO: Color map the result.
-            int iter = testEscapeSeriesForPoint(x+y*I, maxIterations, 0);
-            printf("iter: %d \n", iter);
+            double real = crealf(INITIAL_UPPERLEFT) + (widthPiece * x);
+            double imag = cimagf(INITIAL_UPPERLEFT) - (heightPiece * y);
+            //printf ("x: %d, y: %d\n",x,y);
+            //printf("real: %f, imag: %f\n",real,imag);
+            //printf("---\n");
 
+            int value = testEscapeSeriesForPoint(real+imag*I, maxIterations, 0);
+            //printf("Value: %d\n",value);
             int offset = (y * width + x) * 3;
-            colorMapYUV(iter, maxIterations, image + offset);
+            colorMapYUV(value, maxIterations, image + offset);
         }
     }
 
