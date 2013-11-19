@@ -20,10 +20,18 @@
 void
 colorMapYUV(int index, int maxIterations, unsigned char* color)
 {
-    // TODO Insert your implementation here.
-    color[0] = 0;
-    color[1] = 0;
-    color[2] = 0;
+    float y = 0.2;
+    float u = -1.0+2.0*(index/maxIterations);
+    float v = 0.5 - (index/maxIterations);
+
+    float b = y + u/0.492;
+    float r = y + v/0.877;
+    float g = 1.704*y-0.509*r-0.194*b;
+
+    //printf ("r: %f, g: %f b: %f \n", r,g,b);
+    color[0] = (char) r;
+    color[1] = (char) g;
+    color[2] = (char) b;
 }
 
 /*
@@ -43,9 +51,28 @@ colorMapYUV(int index, int maxIterations, unsigned char* color)
 int
 testEscapeSeriesForPoint(complex float c, int maxIterations, complex float * last)
 {
-    // TODO Insert your implementation here.
-    return -1;
+    complex float z = 0+0*I;
+    int iteration = 0;
+
+    while ((sqrt(pow(creal(z), 2) + pow(cimag(z), 2)) <= RADIUS) && (iteration < maxIterations)) {
+        z = z*z+c;
+        iteration = iteration + 1;
+    }
+
+    if (iteration < maxIterations) {
+        int mu = log(log(sqrt(pow(creal(z), 2) + pow(cimag(z), 2))) / log(2));
+        iteration = iteration + 1 - mu;
+    }
+
+    if (iteration == maxIterations) {
+        iteration = -1;
+    }
+
+    last = &z;
+    return iteration;
 }
+
+
 
 /*
  * Generates an image of a Mandelbrot set.
@@ -60,14 +87,16 @@ generateMandelbrot(
 {
     // Allocate image buffer, row-major order, 3 channels.
     unsigned char *image = malloc(height * width * 3);
-
     // TODO: Generate and color map the image.
     for(int y = 0; y < height; y++) {
         for(int x = 0; x < width; x++) {
             // TODO: Call testEscapeSeriesForPoint() here.
             // TODO: Color map the result.
+            int iter = testEscapeSeriesForPoint(x+y*I, maxIterations, 0);
+            printf("iter: %d \n", iter);
+
             int offset = (y * width + x) * 3;
-            colorMapYUV(-1, maxIterations, image + offset);
+            colorMapYUV(iter, maxIterations, image + offset);
         }
     }
 
