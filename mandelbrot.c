@@ -43,12 +43,9 @@ colorMapYUV(int index, int maxIterations, unsigned char* color)
         g = g * 255.0;
     }
 
-    //printf ("it: %d,r: %f, g: %f b: %f \n",index,r, g, b);
-    //printf ("it: %d,r: %d, g: %d b: %d \n",index,(unsigned char)r, (unsigned char)g, (unsigned char)b);
-    //printf("---\n");
-    color[0] = (unsigned char) r;
-    color[1] = (unsigned char) g;
-    color[2] = (unsigned char) b;
+    color[0] = (char) r;
+    color[1] = (char) g;
+    color[2] = (char) b;
 }
 
 
@@ -67,6 +64,15 @@ complex float addComplex(complex float a, complex float b) {
 
 complex float mulComplex(complex float a, complex float b) {
     complex float result = ((crealf(a)*crealf(b)) - (cimagf(a)*cimagf(b))) + ((crealf(a)*cimagf(b)) + (cimagf(a)*crealf(b))) * I;
+    return result;
+}
+
+/*
+ *Berechnet den Betrag einer komplexen Zahl
+ */
+
+float absComplex(complex float a) {
+    float result = sqrt(crealf(a)*crealf(a) + cimagf(a)*cimagf(a));
     return result;
 }
 
@@ -93,13 +99,13 @@ testEscapeSeriesForPoint(complex float c, int maxIterations, complex float * las
 
     while ((sqrt(pow(crealf(z), 2.0) + pow(cimagf(z), 2.0)) <= RADIUS) && (iteration < maxIterations)) {
         z = addComplex(mulComplex(z,z),c);
-        iteration = iteration + 1;
+        iteration++;
     }
 
     //printf("Real: %f, Imag: %f\n",crealf(z),cimag(z));
 
     if (iteration < maxIterations) {
-        int mu = log(log(sqrt(pow(crealf(z), 2.0) + pow(cimagf(z), 2.0))) / log(2.0));
+        int mu = log(log(absComplex(z)) / log(2.0));
         iteration = iteration + 1 - mu;
     }
 
@@ -125,10 +131,10 @@ generateMandelbrot(
 {
     // Allocate image buffer, row-major order, 3 channels.
     unsigned char *image = malloc(height * width * 3);
-    float widthPiece = (crealf(upperLeft) - crealf(lowerRight)) / width;
-    float heightPiece = (cimagf(upperLeft) - cimagf(lowerRight)) / height;
-    widthPiece = fabs(widthPiece);
-    heightPiece = fabs(heightPiece);
+    float widthPiece = fabs((crealf(upperLeft) - crealf(lowerRight)) / width);
+    float heightPiece = fabs((cimagf(upperLeft) - cimagf(lowerRight)) / height);
+    //widthPiece = fabs(widthPiece);
+    //heightPiece = fabs(heightPiece);
     //printf("%f %f \n",widthPiece, heightPiece);
 
     for(int y = 0; y < height; y++) {
