@@ -51,6 +51,25 @@ colorMapYUV(int index, int maxIterations, unsigned char* color)
     color[2] = (unsigned char) b;
 }
 
+
+/*
+ *Addition von komplexen Zahlen
+ */
+
+complex float addComplex(complex float a, complex float b) {
+    complex float result = (crealf(a) + crealf(b)) + (cimagf(a) + cimagf(b)) * I;
+    return result;
+}
+
+/*
+ *Multiplikation von komplexen Zahlen
+ */
+
+complex float mulComplex(complex float a, complex float b) {
+    complex float result = ((crealf(a)*crealf(b)) - (cimagf(a)*cimagf(b))) + ((crealf(a)*cimagf(b)) + (cimagf(a)*crealf(b))) * I;
+    return result;
+}
+
 /*
  * Executes the complex series for a given parameter c for up to maxIterations
  * and saves the last series component in last.
@@ -73,7 +92,7 @@ testEscapeSeriesForPoint(complex float c, int maxIterations, complex float * las
     int iteration = 0;
 
     while ((sqrt(pow(crealf(z), 2.0) + pow(cimagf(z), 2.0)) <= RADIUS) && (iteration < maxIterations)) {
-        z = z*z+c;
+        z = addComplex(mulComplex(z,z),c);
         iteration = iteration + 1;
     }
 
@@ -106,16 +125,16 @@ generateMandelbrot(
 {
     // Allocate image buffer, row-major order, 3 channels.
     unsigned char *image = malloc(height * width * 3);
-    float widthPiece = (crealf(INITIAL_UPPERLEFT) - crealf(INITIAL_LOWERRIGHT)) / WIDTH;
-    float heightPiece = (cimagf(INITIAL_UPPERLEFT) - cimagf(INITIAL_LOWERRIGHT)) / HEIGHT;
+    float widthPiece = (crealf(upperLeft) - crealf(lowerRight)) / width;
+    float heightPiece = (cimagf(upperLeft) - cimagf(lowerRight)) / height;
     widthPiece = fabs(widthPiece);
     heightPiece = fabs(heightPiece);
-    printf("%f %f \n",widthPiece, heightPiece);
+    //printf("%f %f \n",widthPiece, heightPiece);
 
     for(int y = 0; y < height; y++) {
         for(int x = 0; x < width; x++) {
-            double real = crealf(INITIAL_UPPERLEFT) + (widthPiece * x);
-            double imag = cimagf(INITIAL_UPPERLEFT) - (heightPiece * y);
+            double real = crealf(upperLeft) + (widthPiece * x);
+            double imag = cimagf(upperLeft) - (heightPiece * y);
             //printf ("x: %d, y: %d\n",x,y);
             //printf("real: %f, imag: %f\n",real,imag);
             //printf("---\n");
