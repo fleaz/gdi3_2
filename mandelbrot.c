@@ -6,6 +6,8 @@
  */
 #include "mandelbrot.h"
 #include "stdio.h"
+#include <stdlib.h>
+#include <xmmintrin.h>
 
 /*
  * Calculates a color mapping for a given iteration number by exploiting the
@@ -19,33 +21,9 @@
  *	The associated color as an array of 3 8-bit unsigned char values.
  */
 void
-colorMapYUV(int index, int maxIterations, unsigned char* color)
+colorMapYUV(int* index, int maxIterations, unsigned char* color)
 {
-    float r,g,b;
 
-    if (index == -1){
-        r = 0.0;
-        g = 0.0;
-        b = 0.0;
-
-    }
-    else {
-        float y = 0.2;
-        float u = -1.0 + 2.0 * ((float)index / (float)maxIterations);
-        float v = 0.5 - ((float)index / (float)maxIterations);
-
-        b = y + u / 0.492;
-        r = y + v / 0.877;
-        g = 1.704 * y - 0.509 * r - 0.194 * b;
-
-        b = b * 255.0;
-        r = r * 255.0;
-        g = g * 255.0;
-    }
-
-    color[0] = (char) r;
-    color[1] = (char) g;
-    color[2] = (char) b;
 }
 
 
@@ -77,6 +55,18 @@ float absComplex(complex float a) {
 }
 
 /*
+ *
+ */
+__m128 sseABS(__m128 real, __m128 imag){
+    real = _mm_mul_ps(real, real);
+    imag = _mm_mul_ps(imag, imag);
+    real = _mm_add_ps(real, imag);
+
+    return _mm_sqrt_ps(real);
+}
+
+
+/*
  * Executes the complex series for a given parameter c for up to maxIterations
  * and saves the last series component in last.
  *
@@ -90,30 +80,88 @@ float absComplex(complex float a) {
  *	circle or - if the point is part of the Mandelbrot set a special
  *	(user-defined) value.
  */
-int
-testEscapeSeriesForPoint(complex float c, int maxIterations, complex float * last)
+int*
+testEscapeSeriesForPoint(float r1,float r2,float r3,float r4, float i1, int maxIterations, complex float * last)
 {
     //printf("real: %f, imag: %f\n",crealf(c),cimagf(c));
-    complex float z = 0+0*I;
-    int iteration = 0;
+    //printf("C1 r:%f, i:%f\n",r1,i1);
+    //printf("C2 r:%f, i:%f\n",r2,i1);
+    //printf("C3 r:%f, i:%f\n",r3,i1);
+    //printf("C4 r:%f, i:%f\n",r4,i1);
+    __m128 realC = _mm_set_ps(r1, r2, r3, r4);
+    __m128 imagC = _mm_set_ps(i1, i1, i1, i1);
 
-    while ((sqrt(pow(crealf(z), 2.0) + pow(cimagf(z), 2.0)) <= RADIUS) && (iteration < maxIterations)) {
-        z = addComplex(mulComplex(z,z),c);
-        iteration++;
+    __m128 realZ = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+    __m128 imagZ = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+
+    __m128 tempZ = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+
+    __m128 comp = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+    __m128 radius = _mm_set_ps(RADIUS,RADIUS,RADIUS,RADIUS);
+
+    int it[] = {0,0,0,0};
+    int loop = 0;
+
+    while (loop <= maxIterations) {
+        comp = _mm_cmple_ps (sseABS(realZ, imagZ), radius);
+        int x = _mm_movemask_ps(comp);
+
+        //printf("%d %d %d %d %d \n",x,it[0],it[1],it[2],it[3]);
+        if (x == 0){
+            break;
+        }
+        if (x % 2 == 1 && it[0] < maxIterations){
+            it[0]++;
+        }
+        x = x >> 1;
+
+        if (x % 2 == 1 && it[1] < maxIterations){
+            it[1]++;
+        }
+        x = x >> 1;
+
+        if (x % 2 == 1 && it[2] < maxIterations){
+            it[2]++;
+        }
+        x = x >> 1;
+
+        if (x % 2 == 1 && it[3] < maxIterations){
+            it[3]++;
+        }
+
+        tempZ = _mm_sub_ps(_mm_mul_ps(realZ, realZ),_mm_mul_ps(imagZ, imagZ));
+        imagZ = _mm_add_ps(_mm_mul_ps(realZ, imagZ),_mm_mul_ps(imagZ,realZ));
+        realZ = tempZ;
+
+        realZ = _mm_add_ps(realZ, realC);
+        imagZ = _mm_add_ps(imagC, imagZ);
+
+        //printf("R: %f %f %f %f \n",rZ[0],rZ[1],rZ[2],rZ[3]);
+        //printf("I: %f %f %f %f \n\n",iZ[0],iZ[1],iZ[2],iZ[3]);
+
+        loop++;
     }
 
-    //printf("Real: %f, Imag: %f\n",crealf(z),cimag(z));
+    float rZ[4];
+    _mm_store_ps (rZ, realZ);
+    float iZ[4];
+    _mm_store_ps (iZ, imagZ);
 
-    if (iteration < maxIterations) {
-        int mu = log(log(absComplex(z)) / log(2.0));
-        iteration = iteration + 1 - mu;
+    for(int i=0; i < 4; i++){
+        if( it[i] < maxIterations){
+            int mu = log(log(absComplex(rZ[i]+iZ[i]*I)) / log(2.0)) / log(2);
+            it[i] = it[i] + 1 - mu;
+        }
+        else{
+            it[i] = -1;
+        }
     }
 
-    if (iteration == maxIterations) {
-        iteration = -1;
-    }
-
-    return iteration;
+    //printf("%d %d %d %d \n",it[0],it[1],it[2],it[3]);
+    //mu berechnen
+    // -1 wenn it = maxIt
+    int *p = it[0];
+    return p;
 }
 
 
@@ -139,14 +187,27 @@ generateMandelbrot(
 
     for(int y = 0; y < height; y++) {
         for(int x = 0; x < width; x++) {
-            double real = crealf(upperLeft) + (widthPiece * x);
-            double imag = cimagf(upperLeft) - (heightPiece * y);
+
             //printf ("x: %d, y: %d\n",x,y);
             //printf("real: %f, imag: %f\n",real,imag);
             //printf("---\n");
 
-            int value = testEscapeSeriesForPoint(real+imag*I, maxIterations, 0);
-            //printf("Value: %d\n",value);
+            float r1 = crealf(upperLeft) + (widthPiece * x);
+            float i1 = cimagf(upperLeft) - (heightPiece * y);
+            x++;
+            float r2 = crealf(upperLeft) + (widthPiece * x);
+            x++;
+            float r3 = crealf(upperLeft) + (widthPiece * x);
+            x++;
+            float r4 = crealf(upperLeft) + (widthPiece * x);
+
+
+            //printf("C1 r:%f, i:%f\n",r1,i1);
+            //printf("C2 r:%f, i:%f\n",r2,i1);
+            //printf("C3 r:%f, i:%f\n",r3,i1);
+            //printf("C4 r:%f, i:%f\n",r4,i1);
+
+            int value = testEscapeSeriesForPoint(r1, r2, r3, r4, i1, maxIterations, 0);
             int offset = (y * width + x) * 3;
             colorMapYUV(value, maxIterations, image + offset);
         }
