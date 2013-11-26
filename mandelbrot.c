@@ -21,9 +21,90 @@
  *	The associated color as an array of 3 8-bit unsigned char values.
  */
 void
-colorMapYUV(int* index, int maxIterations, unsigned char* color)
+colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
 {
+    __m128 r;
+    __m128 g;
+    __m128 b;
 
+    __m128 maxIt = _mm_set_ps(maxIterations,maxIterations,maxIterations,maxIterations);
+
+    __m128 v0 = _mm_set_ps(2.0,2.0,2.0,2.0);
+    __m128 v1 = _mm_set_ps(-1.0,-1.0,-1.0,-1.0);
+    __m128 v2 = _mm_set_ps(0.5,0.5,0.5,0.5);
+    __m128 v3 = _mm_set_ps(0.492,0.492,0.492,0.492);
+    __m128 v4 = _mm_set_ps(0.877,0.877,0.877,0.877);
+    __m128 v5 = _mm_set_ps(1.704,1.704,1.704,1.704);
+    __m128 v6 = _mm_set_ps(0.509,0.509,0.509,0.509);
+    __m128 v7 = _mm_set_ps(0.194,0.194,0.194,0.194);
+    __m128 v8 = _mm_set_ps(255,255,255,255);
+
+    __m128 less = _mm_set_ps(-1,-1,-1,-1);
+    __m128 comp = _mm_cmpeq_ps(index,less);
+
+    int x = _mm_movemask_ps(comp);
+
+    __m128 y = _mm_set_ps(0.2,0.2,0.2,0.2);
+    __m128 u = _mm_add_ps(v1, _mm_mul_ps(v0, _mm_div_ps(index,maxIt)));
+    __m128 v = _mm_sub_ps(v2, _mm_div_ps(index,maxIt));
+
+    r = _mm_mul_ps(v8, _mm_add_ps(y, _mm_div_ps(v, v4)));
+    b = _mm_mul_ps(v8, _mm_add_ps(y, _mm_div_ps(u, v3)));
+    g = _mm_mul_ps(v8,_mm_sub_ps(_mm_sub_ps(_mm_mul_ps(v5,y), _mm_mul_ps(v6,r)),_mm_mul_ps(v7, b)));
+
+   /* float rarr[4];
+    _mm_store_ps (rarr, r);
+    printf("r= %f %f %f %f \n", rarr[0],rarr[1], rarr[2], rarr[3]);
+*/
+    float rgbR[4];
+    _mm_store_ps(rgbR, r);
+    float rgbG[4];
+    _mm_store_ps(rgbG, g);
+    float rgbB[4];
+    _mm_store_ps(rgbB, b);
+
+    if(x == 15) {
+        for(int i = 0; i < 4; i++) {
+            color[i] = (char) 0;
+            color[i+1] = (char) 0;
+            color[i+2] = (char) 0;
+        }
+        return;
+    }
+
+    if (x % 2 == 1){
+        rgbR[0] =(char) 0;
+        rgbG[0] =(char) 0;
+        rgbB[0] =(char) 0;
+    }
+    x = x >> 1;
+
+    if (x % 2 == 1){
+        rgbR[1] =(char) 0;
+        rgbG[1] =(char) 0;
+        rgbB[1] =(char) 0;
+    }
+    x = x >> 1;
+
+    if (x % 2 == 1){
+        rgbR[2] =(char) 0;
+        rgbG[2] =(char) 0;
+        rgbB[2] =(char) 0;
+    }
+    x = x >> 1;
+
+    if (x % 2 == 1){
+        rgbR[3] =(char) 0;
+        rgbG[3] =(char) 0;
+        rgbB[3] =(char) 0;
+    }
+
+    for(int i = 0; i < 4; i++) {
+        color[i] = (char) rgbR[i];
+        color[i+1] = (char) rgbB[i];
+        color[i+2] = (char) rgbG[i];
+    }
+    return;
 }
 
 
@@ -80,7 +161,7 @@ __m128 sseABS(__m128 real, __m128 imag){
  *	circle or - if the point is part of the Mandelbrot set a special
  *	(user-defined) value.
  */
-int*
+__m128
 testEscapeSeriesForPoint(float r1,float r2,float r3,float r4, float i1, int maxIterations, complex float * last)
 {
     //printf("real: %f, imag: %f\n",crealf(c),cimagf(c));
@@ -141,7 +222,7 @@ testEscapeSeriesForPoint(float r1,float r2,float r3,float r4, float i1, int maxI
 
         loop++;
     }
-
+//printf("%d %d %d %d \n",it[0],it[1],it[2],it[3]);
     float rZ[4];
     _mm_store_ps (rZ, realZ);
     float iZ[4];
@@ -150,18 +231,21 @@ testEscapeSeriesForPoint(float r1,float r2,float r3,float r4, float i1, int maxI
     for(int i=0; i < 4; i++){
         if( it[i] < maxIterations){
             int mu = log(log(absComplex(rZ[i]+iZ[i]*I)) / log(2.0)) / log(2);
+            //printf("mu: %d\n", mu);
             it[i] = it[i] + 1 - mu;
         }
         else{
             it[i] = -1;
         }
     }
-
+//printf("nach mu %d %d %d %d \n",it[0],it[1],it[2],it[3]);
     //printf("%d %d %d %d \n",it[0],it[1],it[2],it[3]);
     //mu berechnen
     // -1 wenn it = maxIt
-    int *p = it[0];
-    return p;
+
+    //printf("it %d %d %d %d \n",it[0],it[1],it[2],it[3]);
+    //int *p = it[0];
+    return _mm_set_ps(it[0], it[1], it[2], it[3]);
 }
 
 
@@ -188,6 +272,7 @@ generateMandelbrot(
     for(int y = 0; y < height; y++) {
         for(int x = 0; x < width; x++) {
 
+            int offset = (y * width + x) * 3;
             //printf ("x: %d, y: %d\n",x,y);
             //printf("real: %f, imag: %f\n",real,imag);
             //printf("---\n");
@@ -207,9 +292,14 @@ generateMandelbrot(
             //printf("C3 r:%f, i:%f\n",r3,i1);
             //printf("C4 r:%f, i:%f\n",r4,i1);
 
-            int value = testEscapeSeriesForPoint(r1, r2, r3, r4, i1, maxIterations, 0);
-            int offset = (y * width + x) * 3;
-            colorMapYUV(value, maxIterations, image + offset);
+            __m128 itValues = testEscapeSeriesForPoint(r1, r2, r3, r4, i1, maxIterations, 0);
+
+
+            float rZ[4];
+            _mm_store_ps (rZ, itValues);
+            //printf("m = %f %f %f %f \n", rZ[0],rZ[1], rZ[2], rZ[3]);
+
+            colorMapYUV(itValues, maxIterations, image + offset);
         }
     }
 
