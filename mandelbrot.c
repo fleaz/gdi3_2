@@ -8,6 +8,7 @@
 #include "stdio.h"
 #include <stdlib.h>
 #include <xmmintrin.h>
+#include <math.h>
 
 /*
  * Calculates a color mapping for a given iteration number by exploiting the
@@ -64,7 +65,7 @@ colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
     _mm_store_ps(rgbB, b);
 
     if(x == 15) {
-        for(int i = 0; i < 4; i++) {
+        for(int i = 0; i <= 9; i += 3) {
             color[i] = (char) 0;
             color[i+1] = (char) 0;
             color[i+2] = (char) 0;
@@ -99,10 +100,10 @@ colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
         rgbB[3] =(char) 0;
     }
 
-    for(int i = 0; i < 4; i++) {
-        color[i] = (char) rgbR[i];
-        color[i+1] = (char) rgbB[i];
-        color[i+2] = (char) rgbG[i];
+    for(int i = 0; i <= 9; i += 3) {
+        color[i] = (char) rgbR[i/3];
+        color[i+1] = (char) rgbB[i/3];
+        color[i+2] = (char) rgbG[i/3];
     }
     return;
 }
@@ -180,7 +181,7 @@ testEscapeSeriesForPoint(float r1,float r2,float r3,float r4, float i1, int maxI
     __m128 comp = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
     __m128 radius = _mm_set_ps(RADIUS,RADIUS,RADIUS,RADIUS);
 
-    int it[] = {0,0,0,0};
+    float it[] = {0.0,0.0,0.0,0.0};
     int loop = 0;
 
     while (loop <= maxIterations) {
@@ -230,9 +231,14 @@ testEscapeSeriesForPoint(float r1,float r2,float r3,float r4, float i1, int maxI
 
     for(int i=0; i < 4; i++){
         if( it[i] < maxIterations){
-            int mu = log(log(absComplex(rZ[i]+iZ[i]*I)) / log(2.0)) / log(2);
-            //printf("mu: %d\n", mu);
-            it[i] = it[i] + 1 - mu;
+            float mu = log(log(absComplex(rZ[i]+iZ[i]*I)) / log(2.0)) / log(2.0);
+
+            if (fabs(mu) <= 1.0 ){
+
+                //printf("rZ: %f iZ: %f mu: %f\n",rZ[i],iZ[i], mu);
+                //it[i] = it[i] + 1 - mu;
+            }
+
         }
         else{
             it[i] = -1;
