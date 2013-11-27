@@ -24,11 +24,12 @@
 void
 colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
 {
+    //Initialisiere Variablen
     __m128 r;
     __m128 g;
     __m128 b;
 
-    __m128 maxIt = _mm_set_ps(maxIterations,maxIterations,maxIterations,maxIterations);
+    __m128 maxIt = _mm_set_ps1(maxIterations);
 
     __m128 v0 = _mm_set_ps1(2.0);
     __m128 v1 = _mm_set_ps1(-1.0);
@@ -40,11 +41,12 @@ colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
     __m128 v9 = _mm_set_ps1(0.39393);
     __m128 v10 = _mm_set_ps1(0.58081);
 
-
+    //Berechnung von Y, U und V
     __m128 y = _mm_set_ps1(0.2);
     __m128 u = _mm_add_ps(v1, _mm_mul_ps(v0, _mm_div_ps(index,maxIt)));
     __m128 v = _mm_sub_ps(v2, _mm_div_ps(index,maxIt));
 
+    //Berechnung von R, B, G
     r = _mm_mul_ps(v8, _mm_add_ps(y, _mm_div_ps(v, v4)));
     b = _mm_mul_ps(v8, _mm_add_ps(y, _mm_div_ps(u, v3)));
 
@@ -52,6 +54,7 @@ colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
     g = _mm_sub_ps(y, g);
     g = _mm_sub_ps(g, _mm_mul_ps(v10,v));
 
+    //Lege Werte aus r,g,b in arrays, sowie die iterations werte
     float rgbR[4];
     _mm_store_ps(rgbR, r);
     float rgbG[4];
@@ -62,6 +65,7 @@ colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
     float iterationsA[4];
     _mm_store_ps(iterationsA, index);
 
+    //Setze Farben, für custom Wert -1 setze r=g=b=0
     for(int i = 0; i < 4; i++) {
         if(iterationsA[i] == -1) {
             color[i * 3] = 0;
@@ -105,7 +109,10 @@ float absComplex(complex float a) {
 }
 
 /*
+ *Betrag einer Komplexen Zahl, bekommt zwei sse-Register jeweils mit Real- und Imaginärteil
  *
+ *Returns:
+ *Betrag der vier "komplexen Zahlen" in einem sse-Register
  */
 __m128 sseABS(__m128 real, __m128 imag){
     real = _mm_mul_ps(real, real);
@@ -134,7 +141,7 @@ __m128
 testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex float * last)
 {
 
-
+    //Initialisiere Variablen
     __m128 realZ = _mm_set_ps1(0.0);
     __m128 imagZ = _mm_set_ps1(0.0);
 
@@ -147,6 +154,7 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
     int loop = 0;
 
     while (loop <= maxIterations) {
+        //Abfrage abs(z) <= Radius
         comp = _mm_cmple_ps (sseABS(realZ, imagZ), radius);
         int x = _mm_movemask_ps(comp);
 
@@ -173,6 +181,7 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
             it[3]++;
         }
 
+        //Berechne neues Real und Imaginärteile von Z
         tempZ = _mm_sub_ps(_mm_mul_ps(realZ, realZ),_mm_mul_ps(imagZ, imagZ));
         imagZ = _mm_add_ps(_mm_mul_ps(realZ, imagZ),_mm_mul_ps(imagZ,realZ));
         realZ = tempZ;
@@ -188,6 +197,7 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
     float iZ[4];
     _mm_store_ps (iZ, imagZ);
 
+    //Berechne/Verwende mu für die jeweiligen Iterationswerte
     for(int i=0; i < 4; i++){
         if( it[i] < maxIterations){
             complex float complax = rZ[i] + iZ[i] * I;
@@ -228,6 +238,7 @@ generateMandelbrot(
 
             int offset = (y * width + x) * 3;
 
+            //Berechne aktuelle Stelle im Bild
             __m128 sseWidth = _mm_set_ps1(WIDTH);
             __m128 sseHeight = _mm_set_ps1(HEIGHT);
 
@@ -250,12 +261,11 @@ generateMandelbrot(
             imag = _mm_add_ps(imag, imagLow);
 
 
+            //Rufe testEscapeSeriesForPoint auf, Rückgabewerte sind die jeweiligen Iterationswerte
+            //parallel für 4 Pixel gleichzeiti
             __m128 itValues = testEscapeSeriesForPoint(xReal, imag, maxIterations, 0);
 
-
-            float rZ[4];
-            _mm_store_ps (rZ, itValues);
-
+            //Es werde Farbe \o/
             colorMapYUV(itValues, maxIterations, image + offset);
         }
     }
