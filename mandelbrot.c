@@ -163,15 +163,15 @@ __m128 sseABS(__m128 real, __m128 imag){
  *	(user-defined) value.
  */
 __m128
-testEscapeSeriesForPoint(float r1,float r2,float r3,float r4, float i1, int maxIterations, complex float * last)
+testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex float * last)
 {
     //printf("real: %f, imag: %f\n",crealf(c),cimagf(c));
     //printf("C1 r:%f, i:%f\n",r1,i1);
     //printf("C2 r:%f, i:%f\n",r2,i1);
     //printf("C3 r:%f, i:%f\n",r3,i1);
     //printf("C4 r:%f, i:%f\n",r4,i1);
-    __m128 realC = _mm_set_ps(r1, r2, r3, r4);
-    __m128 imagC = _mm_set_ps(i1, i1, i1, i1);
+    //__m128 realC = _mm_set_ps(r1, r2, r3, r4);
+    //__m128 imagC = _mm_set_ps(i1, i1, i1, i1);
 
     __m128 realZ = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
     __m128 imagZ = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
@@ -276,18 +276,39 @@ generateMandelbrot(
     //printf("%f %f \n",widthPiece, heightPiece);
 
     for(int y = 0; y < height; y++) {
-        for(int x = 0; x < width; x++) {
+        for(int x = 0; x < width; x += 4) {
 
             int offset = (y * width + x) * 3;
             //printf ("x: %d, y: %d\n",x,y);
             //printf("real: %f, imag: %f\n",real,imag);
             //printf("---\n");
-            float r1 = (float)x/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
-            float r2 = (float)(x+1)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
-            float r3 = (float)(x+2)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
-            float r4 = (float)(x+3)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+            __m128 sseWidth = _mm_set_ps1(WIDTH);
+            __m128 sseHeight = _mm_set_ps1(HEIGHT);
 
-            float i1 = (float)y/HEIGHT*(cimagf(upperLeft) - cimagf(lowerRight)) + cimagf(lowerRight);
+            __m128 realLow = _mm_set_ps1(crealf(lowerRight));
+            __m128 imagLow = _mm_set_ps1(cimagf(lowerRight));
+            __m128 realUpper = _mm_set_ps1(crealf(upperLeft));
+            __m128 imagUpper = _mm_set_ps1(cimagf(upperLeft));
+
+            __m128 xReal = _mm_set_ps(x, x+1, x+2, x+3);
+
+            xReal = _mm_div_ps(xReal, sseWidth);
+            xReal = _mm_mul_ps(xReal, _mm_sub_ps(realLow,realUpper));
+            xReal = _mm_add_ps(xReal, realUpper);
+
+            //float r1 = (float)x/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+            //float r2 = (float)(x+1)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+            //float r3 = (float)(x+2)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+            //float r4 = (float)(x+3)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+
+            __m128 imag = _mm_set_ps1(y);
+
+            imag = _mm_div_ps(imag, sseHeight);
+            imag = _mm_mul_ps(imag, _mm_sub_ps(imagUpper, imagLow));
+            imag = _mm_add_ps(imag, imagLow);
+            //imag = _mm_div_ps(imag, _mm_mul_ps(sseHeight, _mm_add_ps(_mm_sub_ps(imagUpper, imagLow), imagLow)));
+
+            //float i1 = (float)y/HEIGHT*(cimagf(upperLeft) - cimagf(lowerRight)) + cimagf(lowerRight);
             //float r1 = crealf(upperLeft) + (x / widthPiece);
             //float i1 = cimagf(upperLeft) - (y / heightPiece);
             //x++;
@@ -303,7 +324,7 @@ generateMandelbrot(
             //printf("C3 r:%f, i:%f\n",r3,i1);
             //printf("C4 r:%f, i:%f\n",r4,i1);
 
-            __m128 itValues = testEscapeSeriesForPoint(r1, r2, r3, r4, i1, maxIterations, 0);
+            __m128 itValues = testEscapeSeriesForPoint(xReal, imag, maxIterations, 0);
 
 
             float rZ[4];
