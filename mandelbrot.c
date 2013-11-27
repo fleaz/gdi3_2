@@ -261,16 +261,16 @@ testEscapeSeriesForPoint(float r1,float r2,float r3,float r4, float i1, int maxI
  */
 unsigned char *
 generateMandelbrot(
-    complex float upperLeft, 
-    complex float lowerRight, 
-    int maxIterations, 
-    int width, 
+    complex float upperLeft,
+    complex float lowerRight,
+    int maxIterations,
+    int width,
     int height)
 {
     // Allocate image buffer, row-major order, 3 channels.
     unsigned char *image = malloc(height * width * 3);
-    float widthPiece = fabs((crealf(upperLeft) - crealf(lowerRight)) / width);
-    float heightPiece = fabs((cimagf(upperLeft) - cimagf(lowerRight)) / height);
+    //float widthPiece = fabs(((crealf(lowerRight) - crealf(upperLeft)) + crealf(upperLeft)) * WIDTH);
+    //float heightPiece = fabs(((cimagf(upperLeft) - cimagf(lowerRight)) + cimagf(lowerRight)) * HEIGHT);
     //widthPiece = fabs(widthPiece);
     //heightPiece = fabs(heightPiece);
     //printf("%f %f \n",widthPiece, heightPiece);
@@ -282,15 +282,20 @@ generateMandelbrot(
             //printf ("x: %d, y: %d\n",x,y);
             //printf("real: %f, imag: %f\n",real,imag);
             //printf("---\n");
+            float r1 = (float)x/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+            float r2 = (float)(x+1)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+            float r3 = (float)(x+2)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+            float r4 = (float)(x+3)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
 
-            float r1 = crealf(upperLeft) + (widthPiece * x);
-            float i1 = cimagf(upperLeft) - (heightPiece * y);
-            x++;
-            float r2 = crealf(upperLeft) + (widthPiece * x);
-            x++;
-            float r3 = crealf(upperLeft) + (widthPiece * x);
-            x++;
-            float r4 = crealf(upperLeft) + (widthPiece * x);
+            float i1 = (float)y/HEIGHT*(cimagf(upperLeft) - cimagf(lowerRight)) + cimagf(lowerRight);
+            //float r1 = crealf(upperLeft) + (x / widthPiece);
+            //float i1 = cimagf(upperLeft) - (y / heightPiece);
+            //x++;
+            //float r2 = crealf(upperLeft) + (x / widthPiece);
+            //x++;
+            //float r3 = crealf(upperLeft) + (x / widthPiece);
+            //x++;
+            //float r4 = crealf(upperLeft) + (x / widthPiece);
 
 
             //printf("C1 r:%f, i:%f\n",r1,i1);
