@@ -23,54 +23,47 @@ colorMapYUV(int index, int maxIterations, unsigned char* color)
 {
     float r,g,b;
 
-    if (index == -1){
+    if (index == -1){   // Black if maxIterations is reached
         r = 0.0;
         g = 0.0;
         b = 0.0;
-
     }
-    else {
+    else {              // Calculate color
         float y = 0.2;
         float u = -1.0 + 2.0 * ((float)index / (float)maxIterations);
         float v = 0.5 - ((float)index / (float)maxIterations);
 
-        b = y + u / 0.492;
-        r = y + v / 0.877;
-        g = y - 0.393939 * u - 0.58081 * v;
-
-        b = b * 255.0;
-        r = r * 255.0;
-        g = g * 255.0;
+        b = (y + u / 0.492) * 255.0;
+        r = (y + v / 0.877) * 255.0;
+        g = (y - 0.393939 * u - 0.58081 * v) * 255.0;
     }
-
-    color[0] = (char) r;
-    color[1] = (char) g;
-    color[2] = (char) b;
+    color[0] = (unsigned char) r;
+    color[1] = (unsigned char) g;
+    color[2] = (unsigned char) b;
 }
 
 
 /*
  *Addition von komplexen Zahlen
  */
-
-complex float addComplex(complex float a, complex float b) {
+complex float addComplex(complex float a, complex float b){
     complex float result = (crealf(a) + crealf(b)) + (cimagf(a) + cimagf(b)) * I;
     return result;
 }
 
+
 /*
  *Multiplikation von komplexen Zahlen
  */
-
 complex float mulComplex(complex float a, complex float b) {
     complex float result = ((crealf(a)*crealf(b)) - (cimagf(a)*cimagf(b))) + ((crealf(a)*cimagf(b)) + (cimagf(a)*crealf(b))) * I;
     return result;
 }
 
+
 /*
  *Berechnet den Betrag einer komplexen Zahl
  */
-
 float absComplex(complex float a) {
     float result = sqrt(crealf(a)*crealf(a) + cimagf(a)*cimagf(a));
     return result;
@@ -93,27 +86,26 @@ float absComplex(complex float a) {
 int
 testEscapeSeriesForPoint(complex float c, int maxIterations, complex float * last)
 {
-    //printf("real: %f, imag: %f\n",crealf(c),cimagf(c));
     complex float z = 0+0*I;
     int iteration = 0;
 
-    while ((sqrt(pow(crealf(z), 2.0) + pow(cimagf(z), 2.0)) <= RADIUS) && (iteration < maxIterations)) {
+    while ((absComplex(z) <= RADIUS) && (iteration < maxIterations)) {
         z = addComplex(mulComplex(z,z),c);
         iteration++;
     }
 
-    //printf("Real: %f, Imag: %f\n",crealf(z),cimag(z));
-
     if (iteration < maxIterations) {
+
         float mu = log(log(absComplex(z)) / log(2.0)) / log(2.0);
-        int muNew = (int)(mu + 0.5);
-        if (abs(muNew) ==1){
+        int muNew = (int)(mu + 0.5); // Round mu to 0 or 1
+
+        if (abs(muNew) == 1){   // Only apply if mu is not out of range
             iteration = iteration + 1 - muNew;
         }
     }
 
     if (iteration == maxIterations) {
-        iteration = -1;
+        iteration = -1;     //Special value which shows if maxIteration is reached
     }
 
     return iteration;
@@ -134,28 +126,16 @@ generateMandelbrot(
 {
     // Allocate image buffer, row-major order, 3 channels.
     unsigned char *image = malloc(height * width * 3);
-    //float widthPiece = fabs((crealf(upperLeft) - crealf(lowerRight)) / width);
-    //float heightPiece = fabs((cimagf(upperLeft) - cimagf(lowerRight)) / height);
-    //widthPiece = fabs(widthPiece);
-    //heightPiece = fabs(heightPiece);
-    //printf("%f %f \n",widthPiece, heightPiece);
 
     for(int y = 0; y < height; y++) {
         for(int x = 0; x < width; x++) {
 
             float real = (float)x/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
             float imag = (float)y/HEIGHT*(cimagf(upperLeft) - cimagf(lowerRight)) + cimagf(lowerRight);
-            //printf ("x: %d, y: %d\n",x,y);
-            //printf("real: %f, imag: %f\n",real,imag);
-            //printf("---\n");
-
             int value = testEscapeSeriesForPoint(real+imag*I, maxIterations, 0);
-            //printf("Value: %d\n",value);
             int offset = (y * width + x) * 3;
             colorMapYUV(value, maxIterations, image + offset);
         }
     }
-
     return image;
 }
-
