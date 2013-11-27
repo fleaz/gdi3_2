@@ -51,15 +51,7 @@ colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
     g = _mm_mul_ps(v9, u);
     g = _mm_sub_ps(y, g);
     g = _mm_sub_ps(g, _mm_mul_ps(v10,v));
-    /*g = _mm_mul_ps(v5, y);
-    g = _mm_sub_ps(g, _mm_mul_ps(v6, r));
-    g = _mm_sub_ps(g, _mm_mul_ps(v7, b));
-    g = _mm_mul_ps(v8, g);*/
 
-   /* float rarr[4];
-    _mm_store_ps (rarr, r);
-    printf("r= %f %f %f %f \n", rarr[0],rarr[1], rarr[2], rarr[3]);
-*/
     float rgbR[4];
     _mm_store_ps(rgbR, r);
     float rgbG[4];
@@ -141,13 +133,7 @@ __m128 sseABS(__m128 real, __m128 imag){
 __m128
 testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex float * last)
 {
-    //printf("real: %f, imag: %f\n",crealf(c),cimagf(c));
-    //printf("C1 r:%f, i:%f\n",r1,i1);
-    //printf("C2 r:%f, i:%f\n",r2,i1);
-    //printf("C3 r:%f, i:%f\n",r3,i1);
-    //printf("C4 r:%f, i:%f\n",r4,i1);
-    //__m128 realC = _mm_set_ps(r1, r2, r3, r4);
-    //__m128 imagC = _mm_set_ps(i1, i1, i1, i1);
+
 
     __m128 realZ = _mm_set_ps1(0.0);
     __m128 imagZ = _mm_set_ps1(0.0);
@@ -165,7 +151,6 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
         int x = _mm_movemask_ps(comp);
 
 
-        //printf("%d %d %d %d %d \n",x,it[0],it[1],it[2],it[3]);
         if (x == 0){
             break;
         }
@@ -195,12 +180,9 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
         realZ = _mm_add_ps(realZ, realC);
         imagZ = _mm_add_ps(imagC, imagZ);
 
-        //printf("R: %f %f %f %f \n",rZ[0],rZ[1],rZ[2],rZ[3]);
-        //printf("I: %f %f %f %f \n\n",iZ[0],iZ[1],iZ[2],iZ[3]);
-
         loop++;
     }
-//printf("%d %d %d %d \n",it[0],it[1],it[2],it[3]);
+
     float rZ[4];
     _mm_store_ps (rZ, realZ);
     float iZ[4];
@@ -211,7 +193,6 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
             complex float complax = rZ[i] + iZ[i] * I;
             double mu = log(log((double)absComplex(complax)) / log(2.0)) / log(2.0);
             int muNeu = (int) (mu + 0.5);
-            //printf("%d \n", mu);
             if(mu == 1) {
                 it[i] = it[i] + 1 - muNeu;
             }
@@ -221,13 +202,7 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
             it[i] = -1;
         }
     }
-//printf("nach mu %d %d %d %d \n",it[0],it[1],it[2],it[3]);
-    //printf("%d %d %d %d \n",it[0],it[1],it[2],it[3]);
-    //mu berechnen
-    // -1 wenn it = maxIt
 
-    //printf("it %d %d %d %d \n",it[0],it[1],it[2],it[3]);
-    //int *p = it[0];
     return _mm_set_ps(it[0], it[1], it[2], it[3]);
 }
 
@@ -246,19 +221,13 @@ generateMandelbrot(
 {
     // Allocate image buffer, row-major order, 3 channels.
     unsigned char *image = malloc(height * width * 3);
-    //float widthPiece = fabs(((crealf(lowerRight) - crealf(upperLeft)) + crealf(upperLeft)) * WIDTH);
-    //float heightPiece = fabs(((cimagf(upperLeft) - cimagf(lowerRight)) + cimagf(lowerRight)) * HEIGHT);
-    //widthPiece = fabs(widthPiece);
-    //heightPiece = fabs(heightPiece);
-    //printf("%f %f \n",widthPiece, heightPiece);
+
 
     for(int y = 0; y < height; y++) {
         for(int x = 0; x < width; x += 4) {
 
             int offset = (y * width + x) * 3;
-            //printf ("x: %d, y: %d\n",x,y);
-            //printf("real: %f, imag: %f\n",real,imag);
-            //printf("---\n");
+
             __m128 sseWidth = _mm_set_ps1(WIDTH);
             __m128 sseHeight = _mm_set_ps1(HEIGHT);
 
@@ -273,40 +242,19 @@ generateMandelbrot(
             xReal = _mm_mul_ps(xReal, _mm_sub_ps(realLow,realUpper));
             xReal = _mm_add_ps(xReal, realUpper);
 
-            //float r1 = (float)x/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
-            //float r2 = (float)(x+1)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
-            //float r3 = (float)(x+2)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
-            //float r4 = (float)(x+3)/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
 
             __m128 imag = _mm_set_ps1(y);
 
             imag = _mm_div_ps(imag, sseHeight);
             imag = _mm_mul_ps(imag, _mm_sub_ps(imagUpper, imagLow));
             imag = _mm_add_ps(imag, imagLow);
-            //imag = _mm_div_ps(imag, _mm_mul_ps(sseHeight, _mm_add_ps(_mm_sub_ps(imagUpper, imagLow), imagLow)));
 
-            //float i1 = (float)y/HEIGHT*(cimagf(upperLeft) - cimagf(lowerRight)) + cimagf(lowerRight);
-            //float r1 = crealf(upperLeft) + (x / widthPiece);
-            //float i1 = cimagf(upperLeft) - (y / heightPiece);
-            //x++;
-            //float r2 = crealf(upperLeft) + (x / widthPiece);
-            //x++;
-            //float r3 = crealf(upperLeft) + (x / widthPiece);
-            //x++;
-            //float r4 = crealf(upperLeft) + (x / widthPiece);
-
-
-            //printf("C1 r:%f, i:%f\n",r1,i1);
-            //printf("C2 r:%f, i:%f\n",r2,i1);
-            //printf("C3 r:%f, i:%f\n",r3,i1);
-            //printf("C4 r:%f, i:%f\n",r4,i1);
 
             __m128 itValues = testEscapeSeriesForPoint(xReal, imag, maxIterations, 0);
 
 
             float rZ[4];
             _mm_store_ps (rZ, itValues);
-            //printf("m = %f %f %f %f \n", rZ[0],rZ[1], rZ[2], rZ[3]);
 
             colorMapYUV(itValues, maxIterations, image + offset);
         }
