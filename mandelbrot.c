@@ -131,16 +131,17 @@ generateMandelbrot(
 {
     // Allocate image buffer, row-major order, 3 channels.
     unsigned char *image = malloc(height * width * 3);
-    float widthPiece = fabs((crealf(upperLeft) - crealf(lowerRight)) / width);
-    float heightPiece = fabs((cimagf(upperLeft) - cimagf(lowerRight)) / height);
+    //float widthPiece = fabs((crealf(upperLeft) - crealf(lowerRight)) / width);
+    //float heightPiece = fabs((cimagf(upperLeft) - cimagf(lowerRight)) / height);
     //widthPiece = fabs(widthPiece);
     //heightPiece = fabs(heightPiece);
     //printf("%f %f \n",widthPiece, heightPiece);
 
     for(int y = 0; y < height; y++) {
         for(int x = 0; x < width; x++) {
-            double real = crealf(upperLeft) + (widthPiece * x);
-            double imag = cimagf(upperLeft) - (heightPiece * y);
+
+            float real = (float)x/WIDTH*(crealf(lowerRight) - crealf(upperLeft))+crealf(upperLeft);
+            float imag = (float)y/HEIGHT*(cimagf(upperLeft) - cimagf(lowerRight)) + cimagf(lowerRight);
             //printf ("x: %d, y: %d\n",x,y);
             //printf("real: %f, imag: %f\n",real,imag);
             //printf("---\n");
