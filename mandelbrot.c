@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file contains the implementation of the interface. You can change
  * everything in this file (but it still has to contain the function
  * generateMandelbrot). For example, for a proper SSE implementation of
@@ -30,28 +30,31 @@ colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
 
     __m128 maxIt = _mm_set_ps(maxIterations,maxIterations,maxIterations,maxIterations);
 
-    __m128 v0 = _mm_set_ps(2.0,2.0,2.0,2.0);
-    __m128 v1 = _mm_set_ps(-1.0,-1.0,-1.0,-1.0);
-    __m128 v2 = _mm_set_ps(0.5,0.5,0.5,0.5);
-    __m128 v3 = _mm_set_ps(0.492,0.492,0.492,0.492);
-    __m128 v4 = _mm_set_ps(0.877,0.877,0.877,0.877);
-    __m128 v5 = _mm_set_ps(1.704,1.704,1.704,1.704);
-    __m128 v6 = _mm_set_ps(0.509,0.509,0.509,0.509);
-    __m128 v7 = _mm_set_ps(0.194,0.194,0.194,0.194);
-    __m128 v8 = _mm_set_ps(255,255,255,255);
+    __m128 v0 = _mm_set_ps1(2.0);
+    __m128 v1 = _mm_set_ps1(-1.0);
+    __m128 v2 = _mm_set_ps1(0.5);
+    __m128 v3 = _mm_set_ps1(0.492);
+    __m128 v4 = _mm_set_ps1(0.877);
 
-    __m128 less = _mm_set_ps(-1,-1,-1,-1);
-    __m128 comp = _mm_cmpeq_ps(index,less);
+    __m128 v8 = _mm_set_ps1(255.0);
+    __m128 v9 = _mm_set_ps1(0.39393);
+    __m128 v10 = _mm_set_ps1(0.58081);
 
-    int x = _mm_movemask_ps(comp);
 
-    __m128 y = _mm_set_ps(0.2,0.2,0.2,0.2);
+    __m128 y = _mm_set_ps1(0.2);
     __m128 u = _mm_add_ps(v1, _mm_mul_ps(v0, _mm_div_ps(index,maxIt)));
     __m128 v = _mm_sub_ps(v2, _mm_div_ps(index,maxIt));
 
     r = _mm_mul_ps(v8, _mm_add_ps(y, _mm_div_ps(v, v4)));
     b = _mm_mul_ps(v8, _mm_add_ps(y, _mm_div_ps(u, v3)));
-    g = _mm_mul_ps(v8,_mm_sub_ps(_mm_sub_ps(_mm_mul_ps(v5,y), _mm_mul_ps(v6,r)),_mm_mul_ps(v7, b)));
+
+    g = _mm_mul_ps(v9, u);
+    g = _mm_sub_ps(y, g);
+    g = _mm_sub_ps(g, _mm_mul_ps(v10,v));
+    /*g = _mm_mul_ps(v5, y);
+    g = _mm_sub_ps(g, _mm_mul_ps(v6, r));
+    g = _mm_sub_ps(g, _mm_mul_ps(v7, b));
+    g = _mm_mul_ps(v8, g);*/
 
    /* float rarr[4];
     _mm_store_ps (rarr, r);
@@ -64,46 +67,19 @@ colorMapYUV(__m128 index, int maxIterations, unsigned char* color)
     float rgbB[4];
     _mm_store_ps(rgbB, b);
 
-    if(x == 15) {
-        for(int i = 0; i <= 9; i += 3) {
-            color[i] = (char) 0;
-            color[i+1] = (char) 0;
-            color[i+2] = (char) 0;
+    float iterationsA[4];
+    _mm_store_ps(iterationsA, index);
+
+    for(int i = 0; i < 4; i++) {
+        if(iterationsA[i] == -1) {
+            color[i * 3] = 0;
+            color[i * 3 + 1] = 0;
+            color[i * 3 + 2] = 0;
+        } else {
+            color[i * 3] = (unsigned char)rgbR[i];
+            color[i * 3 + 1] = (unsigned char)rgbG[i];
+            color[i * 3 + 2] = (unsigned char)rgbB[i];
         }
-        return;
-    }
-
-    if (x % 2 == 1){
-        rgbR[0] =(char) 0;
-        rgbG[0] =(char) 0;
-        rgbB[0] =(char) 0;
-    }
-    x = x >> 1;
-
-    if (x % 2 == 1){
-        rgbR[1] =(char) 0;
-        rgbG[1] =(char) 0;
-        rgbB[1] =(char) 0;
-    }
-    x = x >> 1;
-
-    if (x % 2 == 1){
-        rgbR[2] =(char) 0;
-        rgbG[2] =(char) 0;
-        rgbB[2] =(char) 0;
-    }
-    x = x >> 1;
-
-    if (x % 2 == 1){
-        rgbR[3] =(char) 0;
-        rgbG[3] =(char) 0;
-        rgbB[3] =(char) 0;
-    }
-
-    for(int i = 0; i <= 9; i += 3) {
-        color[i] = (char) rgbR[i/3];
-        color[i+1] = (char) rgbB[i/3];
-        color[i+2] = (char) rgbG[i/3];
     }
     return;
 }
@@ -173,13 +149,13 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
     //__m128 realC = _mm_set_ps(r1, r2, r3, r4);
     //__m128 imagC = _mm_set_ps(i1, i1, i1, i1);
 
-    __m128 realZ = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
-    __m128 imagZ = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+    __m128 realZ = _mm_set_ps1(0.0);
+    __m128 imagZ = _mm_set_ps1(0.0);
 
-    __m128 tempZ = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+    __m128 tempZ = _mm_set_ps1(0.0);
 
-    __m128 comp = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
-    __m128 radius = _mm_set_ps(RADIUS,RADIUS,RADIUS,RADIUS);
+    __m128 comp = _mm_set_ps1(0.0);
+    __m128 radius = _mm_set_ps1(RADIUS);
 
     float it[] = {0.0,0.0,0.0,0.0};
     int loop = 0;
@@ -187,6 +163,7 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
     while (loop <= maxIterations) {
         comp = _mm_cmple_ps (sseABS(realZ, imagZ), radius);
         int x = _mm_movemask_ps(comp);
+
 
         //printf("%d %d %d %d %d \n",x,it[0],it[1],it[2],it[3]);
         if (x == 0){
@@ -231,12 +208,12 @@ testEscapeSeriesForPoint(__m128 realC, __m128 imagC, int maxIterations, complex 
 
     for(int i=0; i < 4; i++){
         if( it[i] < maxIterations){
-            float mu = log(log(absComplex(rZ[i]+iZ[i]*I)) / log(2.0)) / log(2.0);
-
-            if (fabs(mu) <= 1.0 ){
-
-                //printf("rZ: %f iZ: %f mu: %f\n",rZ[i],iZ[i], mu);
-                //it[i] = it[i] + 1 - mu;
+            complex float complax = rZ[i] + iZ[i] * I;
+            double mu = log(log((double)absComplex(complax)) / log(2.0)) / log(2.0);
+            int muNeu = (int) (mu + 0.5);
+            //printf("%d \n", mu);
+            if(mu == 1) {
+                it[i] = it[i] + 1 - muNeu;
             }
 
         }
