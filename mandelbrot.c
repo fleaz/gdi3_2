@@ -36,7 +36,7 @@ colorMapYUV(int index, int maxIterations, unsigned char* color)
 
         b = y + u / 0.492;
         r = y + v / 0.877;
-        g = 1.704 * y - 0.509 * r - 0.194 * b;
+        g = y - 0.393939 * u - 0.58081 * v;
 
         b = b * 255.0;
         r = r * 255.0;
@@ -105,8 +105,11 @@ testEscapeSeriesForPoint(complex float c, int maxIterations, complex float * las
     //printf("Real: %f, Imag: %f\n",crealf(z),cimag(z));
 
     if (iteration < maxIterations) {
-        int mu = log(log(absComplex(z)) / log(2.0));
-        iteration = iteration + 1 - mu;
+        float mu = log(log(absComplex(z)) / log(2.0)) / log(2.0);
+        int muNew = (int)(mu + 0.5);
+        if (abs(muNew) ==1){
+            iteration = iteration + 1 - muNew;
+        }
     }
 
     if (iteration == maxIterations) {
